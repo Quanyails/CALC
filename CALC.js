@@ -194,7 +194,7 @@ var evaluate = function()
 		var right = testCanvasSelection(width - 1, 0, 1, height, isBackground, threshold);
 		var top = testCanvasSelection(0, 0, width, 1, isBackground, threshold);
 		var bottom = testCanvasSelection(0, height - 1, width, 1, isBackground, threshold);
-
+		
 		return left && right && top && bottom;
 	}
 
