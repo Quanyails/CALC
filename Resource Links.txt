@@ -1,8 +1,0 @@
-// http://www.xul.fr/en/html5/filereader.php
-// http://stackoverflow.com/questions/22087076/how-to-make-a-simple-image-upload-using-javascript-html
-// http://stackoverflow.com/questions/8751020/how-to-get-a-pixels-x-y-coordinate-color-from-an-image
-// http://stackoverflow.com/questions/24148154/image-load-on-end-event
-// http://stackoverflow.com/questions/17714742/looping-through-pixels-in-an-image
-// http://davidwalsh.name/detect-gif-animated
-// imageElement.naturalHeight
-// imageElement.naturalWidth
