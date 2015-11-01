@@ -41,6 +41,7 @@ var cl = document.createElement("li");
 	cl.innerHTML = "Clipping";
 	checkList.appendChild(cl);
 // TODO: Is it feasible to check blending and colored outlines?
+// TODO: Drag-and-drop support?
 
 var fileInput = document.createElement("input");
 	fileInput.setAttribute("type", "file");
@@ -252,7 +253,7 @@ var evaluate = function()
 	}
 	if (!cResult)
 	{
-		issues.push("The image clips off the image's canvas (may be caused by transparency).");
+		issues.push("The image clips off the image's canvas (may be caused by background issues).");
 	}
 
 	// If we had no issues, report that there are no issues.
