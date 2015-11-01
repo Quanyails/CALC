@@ -26,10 +26,10 @@ var checkList = document.createElement("ul");
 	document.body.appendChild(checkList);
 
 var fs = document.createElement("li");
-	fs.innerHTML = "File Size";
+	fs.innerHTML = "File size";
 	checkList.appendChild(fs);
 var ft = document.createElement("li");
-	ft.innerHTML = "File Type";
+	ft.innerHTML = "File type";
 	checkList.appendChild(ft);
 var ds = document.createElement("li");
 	ds.innerHTML = "Image dimensions";
@@ -252,7 +252,7 @@ var evaluate = function()
 	}
 	if (!cResult)
 	{
-		issues.push("The image clips off the image's canvas.");
+		issues.push("The image clips off the image's canvas (may be caused by transparency).");
 	}
 
 	// If we had no issues, report that there are no issues.
