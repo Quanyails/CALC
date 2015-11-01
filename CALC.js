@@ -241,11 +241,11 @@ var evaluate = function()
 	}
 	if (!ftResult)
 	{
-		issues.push("The file is not of the JPEG, PNG, or GIF image types.");
+		issues.push("The image is not of the JPEG, PNG, or GIF image file formats.");
 	}
 	if (!dResult)
 	{
-		issues.push("The image is not between " + minDimension + " and " + maxDimension + " in dimension.");
+		issues.push("The image is not between " + minDimension + " and " + maxDimension + " pixels in dimension.");
 	}
 	if (!bResult)
 	{
