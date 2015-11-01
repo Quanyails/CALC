@@ -11,9 +11,10 @@ var allowedMIMETypes = ["image/png", "image/jpeg", "image/gif"];
 
 // Global variables for future use.
 var fileSize = 0;
-var filetype = "";
+var fileType = "";
 
-// Generate DOM elements. I know I can use HTML to make this more attractive.
+// Generate DOM elements.
+// I know I can use HTML/libraries to make this more attractive. :U
 
 var header = document.createElement("h3");
 	header.innerHTML = "Quanyails's CAP Art Legality Checker (CALC)";
@@ -41,8 +42,7 @@ var bg = document.createElement("li");
 var cl = document.createElement("li");
 	cl.innerHTML = "Clipping";
 	checkList.appendChild(cl);
-// TODO: Is it feasible to check blending and colored outlines?
-// TODO: Drag-and-drop support?
+// TODO: Is it feasible to check blending and colored outlines (edge detection)?
 
 var fileInput = document.createElement("input");
 	fileInput.setAttribute("type", "file");
@@ -52,13 +52,22 @@ var fileInput = document.createElement("input");
 		function(e)
 		{
 			var fileList = e.target.files;
-			var file = fileList[0]; // Read only one file
-			fileSize = file.size; // Update global variable
-			fileType = file.type; // Update global variable
-
-			// The reader is created a few lines below.
-			reader.readAsDataURL(fileList[0]); // Implicitly calls onload
+			readFiles(fileList)
 		});
+
+var readFiles = function(fileList)
+{
+	if (fileList.length > 0)
+	{
+		var file = fileList[0]; // Read only one file
+		fileSize = file.size; // Update global variable
+		fileType = file.type; // Update global variable
+
+		// The reader is created a few lines below.
+		// Implicitly calls onloadstart and onload.
+		reader.readAsDataURL(fileList[0]);
+	}
+}
 
 // Create the reader and synchronize function calls.
 var reader = new FileReader();
@@ -78,11 +87,53 @@ var reader = new FileReader();
 // We're going to be using a canvas instead in order to sample pixels.
 var img = document.createElement("img");
 // 	document.body.appendChild(img);
-// Create the canvas:
+// Create the canvas and prepare it for dragging-and-dropping.
 var canvas = document.createElement("canvas");
+	// canvas.width = 0;
+	// canvas.height = 0;
 	canvas.style.display = "block";
+	canvas.style.border = "1px solid #000000";
+	canvas.style.backgroundColor = "#FFFFFF"; // This changes when we're dragging.
+var canvas2d = canvas.getContext("2d");
+	canvas2d.font = "30px serif"
+	canvas2d.textAlign = "center"
+	canvas2d.fillText("Drag-and-drop!", canvas.width / 2, canvas.height / 2);
 	document.body.appendChild(canvas);
 
+	canvas.addEventListener("dragenter", function(e)
+		{
+			// Prevent default needed?
+			canvas.style.backgroundColor = "#EEEEEE";
+		})
+	canvas.addEventListener("dragover", function(e)
+		{
+			e.preventDefault(); // Prevent browser redirecting.
+		});
+	canvas.addEventListener("dragleave", function(e)
+		{
+			// Prevent default needed?
+			canvas.style.backgroundColor = "#FFFFFF";
+		})
+	canvas.addEventListener("drop", function(e) // ondrop
+		{
+			e.preventDefault(); // Prevent browser redirecting.
+			canvas.style.backgroundColor = "#FFFFFF";
+			
+			var data = e.dataTransfer;
+			var fileList = data.files;
+			readFiles(fileList);
+			
+			// var uri = e.dataTransfer.getData("text/uri-list");
+			// var url = e.dataTransfer.getData("text/plain");
+			var url = data.getData("url");
+			// We cannot call loadImage(url) and canvas.toDataURL() across domains.
+			if (url !== "")
+			{
+				loadingMessage.innerHTML = "Due to security issues, this script cannot accept cross-domain images. :("
+			}
+		});
+
+// Create the output DOM elements.
 var textContainer = document.createElement("p");
 	document.body.appendChild(textContainer);
 var loadingMessage = document.createElement("p");
@@ -90,7 +141,7 @@ var loadingMessage = document.createElement("p");
 var outputList = document.createElement("ul");
 	textContainer.appendChild(outputList);
 
-
+// Functions to synchronize loading.
 var loadImage = function(src)
 	{
 		img.setAttribute("src", src);
@@ -102,11 +153,10 @@ img.onload = function()
 
 var loadCanvas = function()
 	{
-		// Update the image/canvas.
+		// Update the canvas's dimensions.
 		canvas.width = img.width;
 		canvas.height = img.height;
-		canvas.getContext("2d").drawImage(img, 0, 0);
-
+		canvas2d.drawImage(img, 0, 0);
 		evaluate();
 	}
 
@@ -142,22 +192,32 @@ var evaluate = function()
 	// test for the entire test to be considered 'passing'/'true'.
 	var testCanvasSelection = function(x, y, w, h, pixelTester, threshold)
 	{
-		var selection = canvas.getContext("2d").getImageData(0, 0, w, h);
+		var selection = canvas2d.getImageData(0, 0, w, h);
 
 		var pixelsToArray = function(imageData)
 		{
 			var pixelArray = imageData.data;
-			var pixelLength = pixelArray.length >> 2; // >> 2 to avoid floats?
+			var pixelArrayLength = pixelArray.length;
+			var pixelLength = pixelArrayLength >> 2; // >> 2 to avoid floats?
 			var arr = new Array(pixelLength);
 			for (var i = 0; i < pixelLength; i++)
 			{arr[i] = new Array(4);} // 4 elements for RGBA values
 
+			/*
+			// IE doesn't support forEach. Go figure. D:
 			pixelArray.forEach(function(d, i)
-							   {
+			{
 				var index = i >> 2;
 				var channel = i % 4;
 				arr[index][channel] = d;
 			})
+			*/
+			for (var i = 0; i < pixelArrayLength; i++)
+			{
+				var index = i >> 2;
+				var channel = i % 4;
+				arr[index][channel] = pixelArray[i];
+			}
 			return arr;
 		}
 		var pixels = pixelsToArray(selection);
@@ -224,7 +284,6 @@ var evaluate = function()
 	}
 
 	// Run each check and save the results.
-	
 	var fsResult = fileSizeCheck();
 	var ftResult = fileTypeCheck();
 	var dResult = dimensionsCheck();
@@ -274,12 +333,22 @@ var report = function(iarr)
 	}
 
 	// List the new issues in an HTML list.
+	/*
+	// IE doesn't support forEach. Go figure. D:
 	iarr.forEach(function(str)
 		{
 			var li = document.createElement("li");
 				li.innerHTML = str;
 				outputList.appendChild(li);
 		});
+	*/
+	var l = iarr.length;
+	for (var i = 0; i < l; i++)
+	{
+		var li = document.createElement("li");
+			li.innerHTML = iarr[i];
+			outputList.appendChild(li);
+	}
 }
 
 })()
