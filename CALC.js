@@ -7,6 +7,7 @@
 var maxFileSize = 200000; // bytes
 var minDimension = 320;
 var maxDimension = 640;
+var allowedMIMETypes = ["image/png", "image/jpeg", "image/gif"];
 
 // Global variables for future use.
 var fileSize = 0;
@@ -120,14 +121,11 @@ var evaluate = function()
 	{
 		return (fileSize <= maxFileSize);
 	}
-	// Returns true if the file is a PNG, JPEG, or GIF, false if not.
+	// Returns true if file is one of the permitted file types, false if not.
 	// This function does not currently detect whether a GIF is animated.
 	var fileTypeCheck = function()
 	{
-		var isPNG = fileType === "image/png";
-		var isJPEG = fileType === "image/jpeg";
-		var isGIF = fileType === "image/gif";
-		return (isPNG || isJPEG || isGIF);
+		return allowedMIMETypes.some(function(str){return (str === fileType);});
 	}
 
 	// Returns true if both dimensions are in the ranges, false if at least one
@@ -237,11 +235,11 @@ var evaluate = function()
 	var issues = [];
 	if (!fsResult)
 	{
-		issues.push("The image uploaded exceeds the limit of " + maxFileSize + " bytes.");
+		issues.push("The image exceeds the limit of " + maxFileSize + " bytes.");
 	}
 	if (!ftResult)
 	{
-		issues.push("The image is not of the JPEG, PNG, or GIF image file formats.");
+		issues.push("The image is not in one of these file formats: " + allowedMIMETypes.join(", "));
 	}
 	if (!dResult)
 	{
