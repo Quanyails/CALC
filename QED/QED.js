@@ -23,24 +23,24 @@ if (saveAs == null)
 // Generate DOM elements.
 var header = document.createElement("h3");
 	document.body.appendChild(header);
-	header.innerHTML = "Edge Detection Widget";
-
+	header.textContent = "Edge Detection Widget";
 var foreword = document.createElement("p");
 	document.body.appendChild(foreword);
-	foreword.innerHTML = "Hello! This is a simple script for edge detection processing."
+	foreword.textContent = "Hello! This is a simple script for edge detection processing."
 		+ " The script will return a zipped package containing one PNG image for each supported image file uploaded."
 		+ " Please be careful about the size of files uploaded."
-		+ " JavaScript is not an optimal image processing language, so operations can be slow and stall your browser.";
+		+ " JavaScript is not an optimal language for image processing,"
+		+ " so operations can be slow and stall your browser.";
 
 // Generate image processing input elements.
-
+var inputContainer = document.createElement("p");
+	document.body.appendChild(inputContainer);
 var method = document.createElement("a");
-	document.body.appendChild(method);
-	method.innerHTML = "Method: ";
-
+	inputContainer.appendChild(method);
+	method.textContent = "Method: ";
 // Selection drop-down for the various edge detection algorithms.
 var algorithmSelector = document.createElement("select");
-	document.body.appendChild(algorithmSelector);
+	inputContainer.appendChild(algorithmSelector);
 	algorithmSelector.onchange = function()
 	{
 		readFiles(filesList);
@@ -48,31 +48,29 @@ var algorithmSelector = document.createElement("select");
 	// We'll fill this selection box with algorithms.
 	// For code cleanliness, the algorithms are listed
 	// in a separate section at the bottom of the file.
-
 var fileInput = document.createElement("input");
-	document.body.appendChild(fileInput);
-	fileInput.setAttribute("type", "file");
-	fileInput.setAttribute("accept", "image/*");
-	fileInput.setAttribute("multiple", "");
-	fileInput.addEventListener("change",
-		function(e)
+	inputContainer.appendChild(fileInput);
+	fileInput.type = "file";
+	fileInput.accept = "image/*";
+	fileInput.multiple = "";
+	fileInput.onchange = function(e)
 		{
 			var fileList = e.target.files;
 			readFiles(fileList);
-		});
+		};
 
 // Create the reader and synchronize function calls.
 var reader = new FileReader();
 	reader.onloadstart = function()
 	{
-		loadingMessage.innerHTML = "Loading... If this does not load after a few seconds, try uploading again.";
+		loadingMessage.textContent = "Loading.... If this does not load after a few seconds, try uploading again.";
 	};
 	reader.onload = function()
 	{
 		// The result parameter is a binary string encoding the image source.
 		// loadImage is defined below.
 		loadImage(reader.result);
-		loadingMessage.innerHTML = "Loaded!";
+		loadingMessage.textContent = "Loaded!";
 	};
 
 // Read/write operations:
@@ -119,12 +117,14 @@ var writeFile = function(data)
 // Present the processed images in a zipped package.
 var finishFiles = function()
 {
+	// downloadButton is an HTML element defined below.
+	// The user is allowed to click the download button
+	// only after the files have finished processing.
+	downloadButton.disabled = false;
 	var blob = zipper.generate({type: "blob"});
-
 	// saveAs is from the FileSaver library.
 	/* This line should be disabled for debugging. */
 	saveAs(blob, "QED.zip");
-
 }
 
 // Create the graphical DOM elements.
@@ -148,21 +148,21 @@ var canvas2dIn = canvasIn.getContext("2d");
 	canvas2dIn.textBaseline = "middle"; // Vertical centering
 	canvas2dIn.fillText("Drag-and-drop!", canvasIn.width / 2, canvasIn.height / 2);
 	// Prepare input canvas for dragging-and-dropping.
-	canvasIn.addEventListener("dragenter", function(e)
+	canvasIn.ondragenter = function(e)
 		{
 			// Prevent default needed?
 			canvasIn.style.backgroundColor = "#EEEEEE";
-		})
-	canvasIn.addEventListener("dragover", function(e)
+		};
+	canvasIn.ondragover = function(e)
 		{
 			e.preventDefault(); // Prevent browser redirecting.
-		});
-	canvasIn.addEventListener("dragleave", function(e)
+		};
+	canvasIn.ondragleave = function(e)
 		{
 			// Prevent default needed?
 			canvasIn.style.backgroundColor = "#FFFFFF";
-		});
-	canvasIn.addEventListener("drop", function(e) // ondrop
+		};
+	canvasIn.ondrop = function(e)
 		{
 			e.preventDefault(); // Prevent browser redirecting.
 			canvasIn.style.backgroundColor = "#FFFFFF";
@@ -177,9 +177,9 @@ var canvas2dIn = canvasIn.getContext("2d");
 			// We cannot call loadImage(url) and canvas.toDataURL() across domains.
 			if (url !== "")
 			{
-				loadingMessage.innerHTML = "Due to security issues, this script cannot accept cross-domain images. :("
+				loadingMessage.textContent = "Due to security issues, this script cannot accept cross-domain images. :(";
 			}
-		});
+		};
 
 // Create the output ('write') canvas.
 var canvasOut = document.createElement("canvas");
@@ -200,20 +200,18 @@ var textContainer = document.createElement("p");
 	document.body.appendChild(textContainer);
 var loadingMessage = document.createElement("p");
 	textContainer.appendChild(loadingMessage);
+var downloadButton = document.createElement("button");
+	textContainer.appendChild(downloadButton);
+	downloadButton.textContent = "Download";
+	// This element should only be clickable after finishFiles had been called.
+	downloadButton.disabled = true;
+	downloadButton.onclick = finishFiles;
 
 // Process images in callbacks.
 
 // Functions to synchronize loading.
-var loadImage = function(src)
-	{
-		img.setAttribute("src", src);
-	}
+var loadImage = function(src){img.src = src;};
 img.onload = function()
-	{
-		loadCanvas();
-	};
-
-var loadCanvas = function()
 	{
 		// Update/reset the input canvas's dimensions.
 		// Setting the width/height should clear the canvas.
@@ -535,7 +533,7 @@ for (var key in algorithms)
 {
 	var algorithmOption = document.createElement("option");
 		algorithmOption.value = key;
-		algorithmOption.innerHTML = key;
+		algorithmOption.textContent = key;
 		algorithmSelector.appendChild(algorithmOption);
 }
 

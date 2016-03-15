@@ -18,11 +18,11 @@ var fileType = "";
 
 var header = document.createElement("h3");
 	document.body.appendChild(header);
-	header.innerHTML = "CAP Art Legality Checker (CALC)";
+	header.textContent = "CAP Art Legality Checker (CALC)";
 
 var foreword = document.createElement("p");
 	document.body.appendChild(foreword);
-	foreword.innerHTML = "Hello! This script will check for some of the requirements an image needs for a legal submission:"
+	foreword.textContent = "Hello! This script will check for some of the requirements an image needs for a legal submission:"
 
 
 var checkList = document.createElement("ul");
@@ -30,31 +30,29 @@ var checkList = document.createElement("ul");
 
 var fs = document.createElement("li");
 	checkList.appendChild(fs);
-	fs.innerHTML = "File size";
+	fs.textContent = "File size";
 var ft = document.createElement("li");
 	checkList.appendChild(ft);
-	ft.innerHTML = "File type";
+	ft.textContent = "File type";
 var ds = document.createElement("li");
 	checkList.appendChild(ds);
-	ds.innerHTML = "Image dimensions";
+	ds.textContent = "Image dimensions";
 var bg = document.createElement("li");
 	checkList.appendChild(bg);
-	bg.innerHTML = "Background";
+	bg.textContent = "Background";
 var cl = document.createElement("li");
 	checkList.appendChild(cl);
-	cl.innerHTML = "Clipping";
-// TODO: Is it feasible to check blending and colored outlines (edge detection)?
+	cl.textContent = "Clipping";
 
 var fileInput = document.createElement("input");
 	document.body.appendChild(fileInput);
-	fileInput.setAttribute("type", "file");
-	fileInput.setAttribute("accept", "image/*");
-	fileInput.addEventListener("change",
-		function(e)
+	fileInput.type = "file";
+	fileInput.accept = "image/*";
+	fileInput.onchange = function(e)
 		{
 			var fileList = e.target.files;
 			readFiles(fileList);
-		});
+		};
 
 var readFiles = function(fileList)
 {
@@ -74,14 +72,14 @@ var readFiles = function(fileList)
 var reader = new FileReader();
 	reader.onloadstart = function()
 	{
-		loadingMessage.innerHTML = "Loading... If this does not load after a few seconds, try uploading again.";
+		loadingMessage.textContent = "Loading.... If this does not load after a few seconds, try uploading again.";
 	}
 	reader.onload = function()
 	{
 		// The result parameter is a binary string encoding the image source.
 		// loadImage is defined below.
 		loadImage(reader.result);
-		loadingMessage.innerHTML = "Loaded!";
+		loadingMessage.textContent = "Loaded!";
 	}
 
 // Create an image element, but don't actually show it.
@@ -102,21 +100,21 @@ var canvas2d = canvas.getContext("2d");
 	canvas2d.textAlign = "center";
 	canvas2d.fillText("Drag-and-drop!", canvas.width / 2, canvas.height / 2);
 
-	canvas.addEventListener("dragenter", function(e)
+	canvas.ondragenter = function(e)
 		{
 			// Prevent default needed?
 			canvas.style.backgroundColor = "#EEEEEE";
-		})
-	canvas.addEventListener("dragover", function(e)
+		}
+	canvas.ondragover = function(e)
 		{
 			e.preventDefault(); // Prevent browser redirecting.
-		});
-	canvas.addEventListener("dragleave", function(e)
+		};
+	canvas.ondragleave = function(e)
 		{
 			// Prevent default needed?
 			canvas.style.backgroundColor = "#FFFFFF";
-		});
-	canvas.addEventListener("drop", function(e) // ondrop
+		};
+	canvas.ondrop = function(e)
 		{
 			e.preventDefault(); // Prevent browser redirecting.
 			canvas.style.backgroundColor = "#FFFFFF";
@@ -131,9 +129,9 @@ var canvas2d = canvas.getContext("2d");
 			// We cannot call loadImage(url) and canvas.toDataURL() across domains.
 			if (url !== "")
 			{
-				loadingMessage.innerHTML = "Due to security issues, this script cannot accept cross-domain images. :("
+				loadingMessage.textContent = "Due to security issues, this script cannot accept cross-domain images. :(";
 			}
-		});
+		};
 
 // Create the output DOM elements.
 var textContainer = document.createElement("p");
@@ -144,16 +142,8 @@ var outputList = document.createElement("ul");
 	textContainer.appendChild(outputList);
 
 // Functions to synchronize loading.
-var loadImage = function(src)
-	{
-		img.setAttribute("src", src);
-	}
+var loadImage = function(src){img.src = src;};
 img.onload = function()
-	{
-		loadCanvas();
-	};
-
-var loadCanvas = function()
 	{
 		// Update the canvas's dimensions.
 		canvas.width = img.width;
@@ -205,15 +195,7 @@ var evaluate = function()
 			for (var i = 0; i < pixelLength; i++)
 			{arr[i] = new Array(4);} // 4 elements for RGBA values
 
-			/*
 			// IE doesn't support forEach. Go figure. D:
-			pixelArray.forEach(function(d, i)
-			{
-				var index = i >> 2;
-				var channel = i % 4;
-				arr[index][channel] = d;
-			})
-			*/
 			for (var i = 0; i < pixelArrayLength; i++)
 			{
 				var index = i >> 2;
@@ -337,21 +319,13 @@ var report = function(iarr)
 	}
 
 	// List the new issues in an HTML list.
-	/*
 	// IE doesn't support forEach. Go figure. D:
-	iarr.forEach(function(str)
-		{
-			var li = document.createElement("li");
-				outputList.appendChild(li);
-				li.innerHTML = str;
-		});
-	*/
 	var l = iarr.length;
 	for (var i = 0; i < l; i++)
 	{
 		var li = document.createElement("li");
 			outputList.appendChild(li);
-			li.innerHTML = iarr[i];
+			li.textContent = iarr[i];
 	}
 }
 
