@@ -32,6 +32,12 @@ var foreword = document.createElement("p");
 		+ " Please be careful about the size of files uploaded."
 		+ " JavaScript is not an optimal image processing language, so operations can be slow and stall your browser.";
 
+// Generate image processing input elements.
+
+var method = document.createElement("a");
+	document.body.appendChild(method);
+	method.innerHTML = "Method: ";
+
 // Selection drop-down for the various edge detection algorithms.
 var algorithmSelector = document.createElement("select");
 	document.body.appendChild(algorithmSelector);
@@ -246,7 +252,7 @@ var processImage = function()
 /*********************** Edge detection filter section ***********************/
 
 // ImageData is the output from canvas.getImageData(x, y, w, h);
-var pixelsToArray = function(imageData)
+var pixelsTo2DArray = function(imageData)
 {
 	var w = imageData.width;
 	var h = imageData.height;
@@ -347,7 +353,7 @@ var simple = function(canvasIn, canvasOut)
 	var h = canvasIn.height;
 
 	var selection = canvas2dIn.getImageData(0, 0, w, h);
-	var pixels2D = pixelsToArray(selection);
+	var pixels2D = pixelsTo2DArray(selection);
 
 	// Iterate through all but edge pixels.
 	for (var x = 0; x < w - 1; x++)
@@ -393,7 +399,7 @@ var sobel = function(canvasIn, canvasOut)
 	var h = canvasIn.height;
 
 	var selection = canvas2dIn.getImageData(0, 0, w, h);
-	var pixels2D = pixelsToArray(selection);
+	var pixels2D = pixelsTo2DArray(selection);
 
 	var xMask = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]];
 	var yMask = [[-1,  0, 1], [-2, 0, 2], [-1, 0, 1]];
@@ -442,7 +448,7 @@ var difference = function(canvasIn, canvasOut)
 	var h = canvasIn.height;
 
 	var selection = canvas2dIn.getImageData(0, 0, w, h);
-	var pixels2D = pixelsToArray(selection);
+	var pixels2D = pixelsTo2DArray(selection);
 
 	// Iterate through all but edge pixels.
 	for (var x = 0; x < w - 1; x++)
