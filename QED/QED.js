@@ -44,13 +44,8 @@ var algorithmSelector = document.createElement("select");
 	inputContainer.appendChild(algorithmSelector);
 	algorithmSelector.onchange = function()
 	{
-		// Get the algorithm selected.
-		var algorithmIndex = algorithmSelector.selectedIndex;
-		var algorithmOption = algorithmSelector.options[algorithmIndex];
-		var algorithmName = algorithmOption.value;
-		// Set up the page for the selected algorithm.
-		algorithms[algorithmName]["set"]();
-
+		// setMethod is defined below.
+		setMethod();
 		// readFiles is defined below.
 		readFiles();
 	};
@@ -68,11 +63,19 @@ var fileInput = document.createElement("input");
 			filesList = e.target.files;
 			readFiles();
 		};
-// additionalInput is a container for any additional
-// inputs the user needs for a specific method.
+// additionalInput is a container for any additional inputs
+// the user needs to set for a specific method.
 var additionalInput = document.createElement("p");
 	inputContainer.appendChild(additionalInput);
-
+var setMethod = function()
+	{
+		// Get the algorithm selected.
+		var algorithmIndex = algorithmSelector.selectedIndex;
+		var algorithmOption = algorithmSelector.options[algorithmIndex];
+		var algorithmName = algorithmOption.value;
+		// Set up the page for the selected algorithm.
+		algorithms[algorithmName]["set"]();
+	}
 
 // Create the reader and synchronize function calls.
 var reader = new FileReader();
@@ -117,7 +120,7 @@ var readNextFile = function()
 		// The user is allowed to click the download button
 		// only after the files have finished processing.
 		downloadButton.disabled = false;
-		
+
 		// I found the automatic saveAs prompt a tad annoying.
 		/* This line should be enabled for debugging. */
 		// finishFiles();
@@ -138,7 +141,6 @@ var writeFile = function(data)
 // Present the processed images in a zipped package.
 var finishFiles = function()
 {
-	downloadButton.disabled = false;
 	var blob = zipper.generate({type: "blob"});
 	// saveAs is from the FileSaver library.
 	saveAs(blob, "QED.zip");
