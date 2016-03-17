@@ -1,7 +1,6 @@
 // Created mostly with raw JavaScript,
 // sans the JSZip and FileSaver libraries.
 
-
 // Potential future additions:
 // Add an HTML checkbox element to toggle sorting files.
 // Accept .zip files as inputs, unzip them, and batch process its images.
@@ -21,11 +20,13 @@ if (saveAs == null)
 	{throw("FileSaver library not found.");}
 
 // Generate DOM elements.
+var articleContainer = document.createElement("p");
+	document.body.appendChild(articleContainer);
 var header = document.createElement("h3");
-	document.body.appendChild(header);
+	articleContainer.appendChild(header);
 	header.textContent = "Edge Detection Widget";
 var foreword = document.createElement("p");
-	document.body.appendChild(foreword);
+	articleContainer.appendChild(foreword);
 	foreword.textContent = "Hello! This is a simple script for edge detection processing."
 		+ " The script will return a zipped package containing one PNG image for each supported image file uploaded."
 		+ " Please be careful about the size of files uploaded."
@@ -43,7 +44,15 @@ var algorithmSelector = document.createElement("select");
 	inputContainer.appendChild(algorithmSelector);
 	algorithmSelector.onchange = function()
 	{
-		readFiles(filesList);
+		// Get the algorithm selected.
+		var algorithmIndex = algorithmSelector.selectedIndex;
+		var algorithmOption = algorithmSelector.options[algorithmIndex];
+		var algorithmName = algorithmOption.value;
+		// Set up the page for the selected algorithm.
+		algorithms[algorithmName]["set"]();
+
+		// readFiles is defined below.
+		readFiles();
 	};
 	// We'll fill this selection box with algorithms.
 	// For code cleanliness, the algorithms are listed
@@ -55,9 +64,15 @@ var fileInput = document.createElement("input");
 	fileInput.multiple = "";
 	fileInput.onchange = function(e)
 		{
-			var fileList = e.target.files;
-			readFiles(fileList);
+			// Set global filesList
+			filesList = e.target.files;
+			readFiles();
 		};
+// additionalInput is a container for any additional
+// inputs the user needs for a specific method.
+var additionalInput = document.createElement("p");
+	inputContainer.appendChild(additionalInput);
+
 
 // Create the reader and synchronize function calls.
 var reader = new FileReader();
@@ -75,11 +90,10 @@ var reader = new FileReader();
 
 // Read/write operations:
 
-var readFiles = function(fileList)
+var readFiles = function()
 {
 	// Reset global variables:
 	filesIndex = -1; // We do a ++ in readNextFile to get it to 0.
-	filesList = fileList;
 	zipper = new JSZip();
 
 	// Initiate the read-process-write loop.
@@ -167,9 +181,10 @@ var canvas2dIn = canvasIn.getContext("2d");
 			e.preventDefault(); // Prevent browser redirecting.
 			canvasIn.style.backgroundColor = "#FFFFFF";
 			
+			// Set global filesList
 			var data = e.dataTransfer;
-			var fileList = data.files;
-			readFiles(fileList);
+			filesList = data.files;
+			readFiles();
 			
 			// var uri = e.dataTransfer.getData("text/uri-list");
 			// var url = e.dataTransfer.getData("text/plain");
@@ -237,7 +252,7 @@ var processImage = function()
 	var algorithmName = algorithmOption.value;
 
 	// Run the selected algorithm.
-	algorithms[algorithmName](canvasIn, canvasOut);
+	algorithms[algorithmName]["algorithm"](canvasIn, canvasOut);
 
 	// Set global output data and continue/finish image processing.
 	var dataURI = canvasOut.toDataURL("image/png");
@@ -250,6 +265,7 @@ var processImage = function()
 /*********************** Edge detection filter section ***********************/
 
 // ImageData is the output from canvas.getImageData(x, y, w, h);
+// I guess this is an implicit constructor for a pixel2DArray object.
 var pixelsTo2DArray = function(imageData)
 {
 	var w = imageData.width;
@@ -277,7 +293,8 @@ var pixelsTo2DArray = function(imageData)
 	pixel2DArray.width = imageData.width;
 	pixel2DArray.height = imageData.height;
 
-	// Safe array access. Null is better than undefined for math operators.
+	// Safe array access.
+	// Null is better than undefined for math operators.
 	pixel2DArray.get = function(x, y)
 	{
 		var row = pixel2DArray[x];
@@ -291,6 +308,8 @@ var pixelsTo2DArray = function(imageData)
 }
 
 // Curried function.
+// Returns a function that takes in parameters (x, y), which
+// returns the convoluted pixel from the input pixel2DArray.
 // Depending on the operation, 
 // we may want to just perform RGB convolution,
 // or we might want to convolute the alpha channel in addition.
@@ -333,7 +352,7 @@ var convolute = function(pixel2DArray, mask, alpha)
 		// If we shouldn't convolute alpha,
 		// replace the convoluted alpha value with the original alpha value.
 		// The loose equality here is intentional. I won't be stringent.
-		if (alpha == false)
+		if (!!alpha == false)
 		{
 			convolutedPixel[3] = pixel2DArray.get(x, y)[3];
 		}
@@ -343,6 +362,11 @@ var convolute = function(pixel2DArray, mask, alpha)
 }
 
 // Simple edge detection: check neighboring pixels for different values.
+var setSimple = function()
+{
+	// Clear innerHTML.
+	additionalInput.innerHTML = "";
+};
 var simple = function(canvasIn, canvasOut)
 {
 	var canvas2dIn = canvasIn.getContext("2d");
@@ -389,6 +413,11 @@ var simple = function(canvasIn, canvasOut)
 };
 
 // Sobel edge filter: use a convolution mask to approximate sharp gradients.
+var setSobel = function()
+{
+	// Clear innerHTML.
+	additionalInput.innerHTML = "";
+};
 var sobel = function(canvasIn, canvasOut)
 {
 	var canvas2dIn = canvasIn.getContext("2d");
@@ -438,6 +467,60 @@ var sobel = function(canvasIn, canvasOut)
 
 // Use the largest contrast in RGB channel values as the line intensity.
 // Conceptually derived from: http://gamedev.stackexchange.com/a/86413
+var setDifference = function()
+{
+	additionalInput.innerHTML = "";
+	var minText = document.createElement("p");
+		additionalInput.appendChild(minText);
+	var minSlider = document.createElement("input");
+		additionalInput.appendChild(minSlider);
+		minSlider.id = "minSlider"; // For fetching in [difference]
+		minSlider.type = "range";
+		minSlider.min = 0;
+		minSlider.max = 255;
+		minSlider.defaultValue = 102;
+		//
+		minText.textContent = "Minimum value: " + minSlider.value;
+		minSlider.onchange = function()
+		{
+			// Unary + to convert value from string to number.
+			var minValue = +minSlider.value;
+			var maxValue = +maxSlider.value;
+			minText.textContent = "Minimum value: " + minValue;
+			if (maxValue < minValue)
+			{
+				maxText.textContent = "Maximum value: " + minValue;
+				maxSlider.value = minValue;
+			}
+			readFiles();
+		};
+
+	var maxText = document.createElement("p");
+		additionalInput.appendChild(maxText);
+	var maxSlider = document.createElement("input");
+		additionalInput.appendChild(maxSlider);
+		maxSlider.id = "maxSlider"; // For fetching in [difference]
+		maxSlider.type = "range";
+		maxSlider.min = 0;
+		maxSlider.max = 255;
+		maxSlider.defaultValue = 187;
+		//
+		maxText.textContent = "Maximum value: " + maxSlider.value;
+		maxSlider.onchange = function()
+		{
+			// Unary + to convert value from string to number.
+			var minValue = +minSlider.value;
+			var maxValue = +maxSlider.value;
+			maxText.textContent = "Maximum value: " + maxValue;
+			if (maxValue < minValue)
+			{
+				minText.textContent = "Minimum value: " + maxValue;
+				minSlider.value = maxValue;
+			}
+			readFiles();
+		};
+	//
+};
 var difference = function(canvasIn, canvasOut)
 {
 	var canvas2dIn = canvasIn.getContext("2d");
@@ -497,13 +580,27 @@ var difference = function(canvasIn, canvasOut)
 			// Hence, I used values from [0, 255] instead of [0, 1].
 			//
 			// In addition, I didn't see significant difference in
-			// output if I removed the second clamp, so I removed it.
+			// output if I removed the first/inner clamp, so I removed it.
 			//
-			// Otherwise, I simplified the sequence of operations.
-			var contrast = 3 * (maxDelta - 102);
-				// = 1.5 * (2 * maxDelta - 0.8 * 255);
-				// = 3 * maxDelta - 306;
-				contrast = Math.max(0, Math.min(255, contrast));
+			// Otherwise, I simplified the operations before the clamp:
+			// contrast = 1.5 * (2 * maxDelta - 0.8 * 255);
+			// 			= 3 * maxDelta - 306;
+			// 			= 3 * (maxDelta - 102);
+			// And we can see that, by default,
+			// maxDelta <= 102 -> black
+			// maxDelta >= 187 -> white
+
+			// But that's a bit moot with this implementation,
+			// since it now uses a parameterized slider set above.
+			// Unary + to convert value from string to number.
+			var dMin = +document.getElementById("minSlider").value;
+			var dMax = +document.getElementById("maxSlider").value;
+			var contrast = maxDelta;
+				// clamp to [dMin, dMax].
+				contrast = Math.max(dMin, Math.min(dMax, contrast));
+				// map [dMin, dMax] -> [0, 255].
+				contrast = (contrast - dMin) / (dMax - dMin) * 255;
+
 				// Cast to grayscale channel.
 				contrast = 255 - Math.round(contrast);
 
@@ -523,9 +620,9 @@ var difference = function(canvasIn, canvasOut)
 
 // Object to contain algorithms.
 var algorithms = {
-	"simple": simple,
-	"sobel": sobel,
-	"color difference": difference,
+	"simple": {"set": setSimple, "algorithm": simple},
+	"sobel": {"set": setSobel, "algorithm": sobel},
+	"color difference": {"set": setDifference, "algorithm": difference},
 };
 
 // Add all algorithms as selectable options to algorithmSelector, as created above.

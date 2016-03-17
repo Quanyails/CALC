@@ -15,18 +15,17 @@ var fileType = "";
 
 // Generate DOM elements.
 // I know I can use HTML/libraries to make this more attractive. :U
-
+var articleContainer = document.createElement("p");
+	document.body.appendChild(articleContainer);
 var header = document.createElement("h3");
-	document.body.appendChild(header);
+	articleContainer.appendChild(header);
 	header.textContent = "CAP Art Legality Checker (CALC)";
-
 var foreword = document.createElement("p");
-	document.body.appendChild(foreword);
+	articleContainer.appendChild(foreword);
 	foreword.textContent = "Hello! This script will check for some of the requirements an image needs for a legal submission:"
 
-
 var checkList = document.createElement("ul");
-	document.body.appendChild(checkList);
+	articleContainer.appendChild(checkList);
 
 var fs = document.createElement("li");
 	checkList.appendChild(fs);
