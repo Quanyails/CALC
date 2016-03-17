@@ -113,7 +113,14 @@ var readNextFile = function()
 	}
 	else if (filesIndex === filesList.length)
 	{
-		finishFiles();
+		// downloadButton is an HTML element defined below.
+		// The user is allowed to click the download button
+		// only after the files have finished processing.
+		downloadButton.disabled = false;
+		
+		// I found the automatic saveAs prompt a tad annoying.
+		/* This line should be enabled for debugging. */
+		// finishFiles();
 	}
 }
 
@@ -131,13 +138,9 @@ var writeFile = function(data)
 // Present the processed images in a zipped package.
 var finishFiles = function()
 {
-	// downloadButton is an HTML element defined below.
-	// The user is allowed to click the download button
-	// only after the files have finished processing.
 	downloadButton.disabled = false;
 	var blob = zipper.generate({type: "blob"});
 	// saveAs is from the FileSaver library.
-	/* This line should be disabled for debugging. */
 	saveAs(blob, "QED.zip");
 }
 
@@ -622,7 +625,7 @@ var difference = function(canvasIn, canvasOut)
 var algorithms = {
 	"simple": {"set": setSimple, "algorithm": simple},
 	"sobel": {"set": setSobel, "algorithm": sobel},
-	"color difference": {"set": setDifference, "algorithm": difference},
+	"color difference": {"set": setDifference, "algorithm": difference}
 };
 
 // Add all algorithms as selectable options to algorithmSelector, as created above.
