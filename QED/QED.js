@@ -56,7 +56,7 @@ var fileInput = document.createElement("input");
 	inputContainer.appendChild(fileInput);
 	fileInput.type = "file";
 	fileInput.accept = "image/*";
-	fileInput.multiple = "";
+	fileInput.multiple = true;
 	fileInput.onchange = function(e)
 		{
 			// Set global filesList
@@ -69,6 +69,9 @@ var additionalInput = document.createElement("p");
 	inputContainer.appendChild(additionalInput);
 var setMethod = function()
 	{
+		// Clear innerHTML.
+		additionalInput.innerHTML = "";
+
 		// Get the algorithm selected.
 		var algorithmIndex = algorithmSelector.selectedIndex;
 		var algorithmOption = algorithmSelector.options[algorithmIndex];
@@ -369,8 +372,7 @@ var convolute = function(pixel2DArray, mask, alpha)
 // Simple edge detection: check neighboring pixels for different values.
 var setSimple = function()
 {
-	// Clear innerHTML.
-	additionalInput.innerHTML = "";
+	// No changes.
 };
 var simple = function(canvasIn, canvasOut)
 {
@@ -420,8 +422,7 @@ var simple = function(canvasIn, canvasOut)
 // Sobel edge filter: use a convolution mask to approximate sharp gradients.
 var setSobel = function()
 {
-	// Clear innerHTML.
-	additionalInput.innerHTML = "";
+	// No changes.
 };
 var sobel = function(canvasIn, canvasOut)
 {
@@ -474,7 +475,6 @@ var sobel = function(canvasIn, canvasOut)
 // Conceptually derived from: http://gamedev.stackexchange.com/a/86413
 var setDifference = function()
 {
-	additionalInput.innerHTML = "";
 	var minText = document.createElement("p");
 		additionalInput.appendChild(minText);
 	var minSlider = document.createElement("input");
@@ -545,7 +545,6 @@ var difference = function(canvasIn, canvasOut)
 			var currentPixel = pixels2D.get(x, y);
 			var downPixel = pixels2D.get(x + 1, y);
 			var rightPixel = pixels2D.get(x, y + 1);
-			var downrightPixel = pixels2D.get(x + 1, y + 1);
 
 			// Get RGB values for each pixel.
 			var rc = currentPixel[0];
@@ -560,14 +559,9 @@ var difference = function(canvasIn, canvasOut)
 			var gr = rightPixel[1];
 			var br = rightPixel[2];
 
-			var rdr = downrightPixel[0];
-			var gdr = downrightPixel[1];
-			var bdr = downrightPixel[2];
-
 			// Get difference in values between the pixel and its neighbors.
 			var deltas = [rc - rd, gc - gd, bc - bd,
-						  rc - rr, gc - gr, bc - br,
-						  rc - rdr, gc - gdr, bc - bdr];
+						  rc - rr, gc - gr, bc - br];
 			// Find the biggest difference in values as the magnitude.
 			var maxDelta = deltas
 				// Take magnitude of each channel difference.
