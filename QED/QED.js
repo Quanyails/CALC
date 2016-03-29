@@ -479,7 +479,7 @@ var setDifference = function()
 		additionalInput.appendChild(minText);
 	var minSlider = document.createElement("input");
 		additionalInput.appendChild(minSlider);
-		minSlider.id = "minSlider"; // For fetching in [difference]
+		minSlider.id = "minSlider"; // Fetched in [difference].
 		minSlider.type = "range";
 		minSlider.min = 0;
 		minSlider.max = 255;
@@ -504,7 +504,7 @@ var setDifference = function()
 		additionalInput.appendChild(maxText);
 	var maxSlider = document.createElement("input");
 		additionalInput.appendChild(maxSlider);
-		maxSlider.id = "maxSlider"; // For fetching in [difference]
+		maxSlider.id = "maxSlider"; // Fetced in [difference].
 		maxSlider.type = "range";
 		maxSlider.min = 0;
 		maxSlider.max = 255;
@@ -599,7 +599,6 @@ var difference = function(canvasIn, canvasOut)
 				contrast = Math.max(dMin, Math.min(dMax, contrast));
 				// map [dMin, dMax] -> [0, 255].
 				contrast = (contrast - dMin) / (dMax - dMin) * 255;
-
 				// Cast to grayscale channel.
 				contrast = 255 - Math.round(contrast);
 
@@ -617,11 +616,161 @@ var difference = function(canvasIn, canvasOut)
 	// End for loop.
 };
 
+// Use the most negative dot product of RGB channel values/vectors.
+// We interpret RGB channels as XYZ vector magnitudes, and we use
+// the normalized dot product between these vectors to determine contrast.
+var setDotProduct = function()
+{
+	var minText = document.createElement("p");
+		additionalInput.appendChild(minText);
+	var minSlider = document.createElement("input");
+		additionalInput.appendChild(minSlider);
+		minSlider.id = "minSlider"; // Fetched in [difference].
+		minSlider.type = "range";
+		minSlider.min = 0;
+		minSlider.max = 1; // Technically 1 * Pi, but we divide out.
+		minSlider.step = 0.01;
+		minSlider.defaultValue = 0.4; // = 102 / 255
+		//
+		minText.textContent = "Minimum value: " + minSlider.value;
+		minSlider.onchange = function()
+		{
+			// Unary + to convert value from string to number.
+			var minValue = +minSlider.value;
+			var maxValue = +maxSlider.value;
+			minText.textContent = "Minimum value: " + minValue;
+			if (maxValue < minValue)
+			{
+				maxText.textContent = "Maximum value: " + minValue;
+				maxSlider.value = minValue;
+			}
+			readFiles();
+		};
+
+	var maxText = document.createElement("p");
+		additionalInput.appendChild(maxText);
+	var maxSlider = document.createElement("input");
+		additionalInput.appendChild(maxSlider);
+		maxSlider.id = "maxSlider"; // Fetced in [difference].
+		maxSlider.type = "range";
+		maxSlider.min = 0;
+		maxSlider.max = 1;  // Technically 1 * Pi, but we divide out.
+		maxSlider.step = 0.01;
+		maxSlider.defaultValue = 0.7; // ~= 187 / 255
+		//
+		maxText.textContent = "Maximum value: " + maxSlider.value;
+		maxSlider.onchange = function()
+		{
+			// Unary + to convert value from string to number.
+			var minValue = +minSlider.value;
+			var maxValue = +maxSlider.value;
+			maxText.textContent = "Maximum value: " + maxValue;
+			if (maxValue < minValue)
+			{
+				minText.textContent = "Minimum value: " + maxValue;
+				minSlider.value = maxValue;
+			}
+			readFiles();
+		};
+	//
+}
+var dotProduct = function(canvasIn, canvasOut)
+{
+	var canvas2dIn = canvasIn.getContext("2d");
+	var canvas2dOut = canvasOut.getContext("2d");
+	var w = canvasIn.width;
+	var h = canvasIn.height;
+
+	var selection = canvas2dIn.getImageData(0, 0, w, h);
+	var pixels2D = pixelsTo2DArray(selection);
+
+	// Iterate through all but edge pixels.
+	for (var x = 0; x < w - 1; x++)
+	{
+		for (var y = 0; y < h - 1; y++)
+		{
+			// Sample the adjacent pixels with increasing indices.
+			var currentPixel = pixels2D.get(x, y);
+			var downPixel = pixels2D.get(x + 1, y);
+			var rightPixel = pixels2D.get(x, y + 1);
+
+			// This sequence of steps can be optimized by being pre-calculated.
+			// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
+			// Interpret RGB values as XYZ coordinates in vector.
+			var vc = [currentPixel[0], currentPixel[1], currentPixel[2]];
+			var vd = [downPixel[0], downPixel[1], downPixel[2]];
+			var vr = [rightPixel[0], rightPixel[1], rightPixel[2]];
+
+			// Convert from [0, 255] to [-128, 127].
+			for (var i = 0; i < 3; i++)
+			{
+				vc[i] -= 128;
+				vd[i] -= 128;
+				vr[i] -= 128;
+			}
+			// Normalize vectors.
+			var normC = Math.hypot(vc[0], vc[1], vc[2]);
+			var normD = Math.hypot(vd[0], vd[1], vd[2]);
+			var normR = Math.hypot(vr[0], vr[1], vr[2]);
+			for (var i = 0; i < 3; i++)
+			{
+				vc[i] /= normC;
+				vd[i] /= normD;
+				vr[i] /= normR;
+			}
+
+			// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+			// Get dot product of current vector with neighbors'.
+			// As we use normalized values, the dot product will be in [-1, 1].
+			// Clamp values to [-1, 1].
+			var dotD = vc[0] * vd[0] + vc[1] * vd[1] + vc[2] * vd[2];
+				dotD = Math.max(-1, Math.min(1, dotD));
+			var dotR = vc[0] * vr[0] + vc[1] * vr[1] + vc[2] * vr[2];
+				dotR = Math.max(-1, Math.min(1, dotR));
+			var isZeroD = isNaN(dotD); // Was RGB (0, 0, 0)?
+			var isZeroR = isNaN(dotR); // Was RGB (0, 0, 0)?
+			var dotMin;
+			if (isZeroD && isZeroR) {dotMin = 1;} // max in [-1, 1].
+			else if (isZeroD && !isZeroR) {dotMin = dotR;}
+			else if (!isZeroD && isZeroR) {dotMin = dotD;}
+			else /* !isZeroD && !isZeroR */ {dotMin = Math.min(dotD, dotR);}
+
+			// Interpret dot product as cosine value on unit circle.
+			// Convert from cosine ratio to radians and normalize.
+			var contrast = Math.acos(dotMin) / Math.PI; // [1, 0]
+
+			// Compute output color according to parameters.
+			var dMin = +document.getElementById("minSlider").value;
+			var dMax = +document.getElementById("maxSlider").value;
+				// clamp to [dMin, dMax].
+				contrast = Math.max(dMin, Math.min(dMax, contrast));
+				// map [dMin, dMax] -> [0, 255].
+				contrast = (contrast - dMin) / (dMax - dMin) * 255;
+				// Cast to grayscale channel.
+				contrast = 255 - Math.round(contrast);
+
+			// Set RGB values to the magnitude to get a shade of gray.
+			var rgba = new Array(4);
+			rgba[0] = contrast;
+			rgba[1] = contrast;
+			rgba[2] = contrast;
+			rgba[3] = currentPixel[3]; // Keep original alpha.
+
+			canvas2dOut.fillStyle = "rgba(" + rgba.join(",") + ")";
+			canvas2dOut.fillRect(x, y, 1, 1);
+		}
+	}
+	// End for loop.
+}
+
 // Object to contain algorithms.
 var algorithms = {
 	"simple": {"set": setSimple, "algorithm": simple},
 	"sobel": {"set": setSobel, "algorithm": sobel},
-	"color difference": {"set": setDifference, "algorithm": difference}
+	"color difference": {"set": setDifference, "algorithm": difference},
+	"normal difference": {"set": setDotProduct, "algorithm": dotProduct},
 };
 
 // Add all algorithms as selectable options to algorithmSelector, as created above.
