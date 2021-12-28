@@ -1,0 +1,7 @@
+{
+  ".eslintrc.js": "npx prettier --write",
+  ".lintstagedrc.json": "npx prettier --write",
+  "package.json": "npx prettier --write",
+  "src/**/*.{ts,tsx}": "npx eslint --ext=.ts,.tsx --fix --max-warnings=0",
+  "src/**/*.{js,jsx,ts,tsx,json,css,scss,md}": "npx prettier --write"
+}
