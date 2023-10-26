@@ -1,63 +1,51 @@
 import React from "react";
 
+import Canvas from "components/Canvas";
 import { ALLOWED_MIME_TYPES, getImageIssues } from "features/calc/util";
 import { read } from "util/fileReader";
 import { loadImg } from "util/img";
 
 const CalcPage = () => {
-  const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
   const [fileType, setFileType] = React.useState<string>();
-  const [isDragging, setIsDragging] = React.useState(false);
+  const [img, setImg] = React.useState<HTMLImageElement>();
   const [imageIssues, setImageIssues] = React.useState<string[]>([]);
   const [statusMessage, setStatusMessage] = React.useState<string>();
-
-  // Draw the drag-and-drop text after the canvas has rendered
-  React.useLayoutEffect(() => {
-    const canvas = canvasRef.current;
-    const canvas2d = canvas?.getContext("2d");
-    if (canvas && canvas2d) {
-      canvas2d.clearRect(0, 0, canvas.width, canvas.height);
-      canvas2d.font = "30px serif";
-      canvas2d.textAlign = "center";
-      canvas2d.fillText("Drag-and-drop!", canvas.width / 2, canvas.height / 2);
-    }
-  }, []);
 
   const readFile = React.useCallback(
     async (f: File) => {
       setStatusMessage("Loading...");
       const data = await read(f, "dataUrl");
-      const img = await loadImg(data);
-      setStatusMessage("Loaded!");
+      const i = await loadImg(data);
+      setImg(i);
 
-      const canvas = canvasRef.current;
-      const canvas2d = canvas?.getContext("2d");
-      if (canvas && canvas2d) {
-        canvas.height = img.naturalHeight;
-        canvas.width = img.naturalWidth;
-        canvas2d.clearRect(0, 0, canvas.width, canvas.height);
-        canvas2d.drawImage(img, 0, 0);
-        const issues = getImageIssues(canvas);
-        if (fileType && !ALLOWED_MIME_TYPES.includes(fileType)) {
-          issues.push(
-            `The image is not in one of these file formats: ${ALLOWED_MIME_TYPES.join(
-              "\n"
-            )}`
-          );
-        }
-        if (issues.length === 0) {
-          setImageIssues([
-            "There are no technical issues detected with the image!",
-          ]);
-        } else {
-          setImageIssues(issues);
-        }
+      const canvas = document.createElement("canvas");
+      canvas.width = i.width;
+      canvas.height = i.height;
+      const context2d = canvas.getContext("2d");
+      if (context2d) {
+        context2d.drawImage(i, 0, 0);
       }
+      const issues = getImageIssues(canvas);
+      if (fileType && !ALLOWED_MIME_TYPES.includes(fileType)) {
+        issues.push(
+          `The image is not in one of these file formats: ${ALLOWED_MIME_TYPES.join(
+            "\n"
+          )}`
+        );
+      }
+      if (issues.length === 0) {
+        setImageIssues([
+          "There are no technical issues detected with the image!",
+        ]);
+      } else {
+        setImageIssues(issues);
+      }
+      setStatusMessage("Loaded!");
     },
     [fileType, setStatusMessage]
   );
 
-  const handleChange: React.ChangeEventHandler<HTMLInputElement> =
+  const handleFileChange: React.ChangeEventHandler<HTMLInputElement> =
     React.useCallback(
       (e) => {
         const fs = e.target.files;
@@ -104,25 +92,8 @@ const CalcPage = () => {
         <li>Background</li>
         <li>Clipping</li>
       </ul>
-      <canvas
-        onDragEnter={() => setIsDragging(true)}
-        onDragLeave={() => setIsDragging(false)}
-        // Prevent browser redirect.
-        onDragOver={(e) => e.preventDefault()}
-        // Prevent browser redirect.
-        onDrop={(e) => {
-          e.preventDefault();
-          setIsDragging(false);
-          handleDrop(e);
-        }}
-        ref={canvasRef}
-        style={{
-          backgroundColor: isDragging ? "#EEE" : "#FFF",
-          border: "1px solid black",
-          display: "block",
-        }}
-      />
-      <input accept="image/*" onChange={handleChange} type="file" />
+      <Canvas handleDrop={handleDrop} img={img} placeholder="Drag-and-drop!" />
+      <input accept="image/*" onChange={handleFileChange} type="file" />
       {statusMessage ? <p>{statusMessage}</p> : null}
       {imageIssues.length > 0 ? (
         <ul>

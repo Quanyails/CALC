@@ -1,5 +1,5 @@
 import { convolute } from "../../image_processing/convolutions";
-import { Rgba } from "../../image_processing/rgba";
+import type { Rgba } from "../../image_processing/rgba";
 import { RgbaView } from "../../image_processing/rgbaView";
 
 const xMask = [
@@ -24,17 +24,12 @@ const getMagnitude = (xChannel: number, yChannel: number) => {
 };
 
 // Sobel edge filter: use a convolution mask to approximate sharp gradients.
-export const drawSobel = (
-  canvasIn: HTMLCanvasElement,
-  canvasOut: HTMLCanvasElement
-) => {
-  const w = canvasIn.width;
-  const h = canvasIn.height;
-  const canvas2dIn = canvasIn.getContext("2d") as CanvasRenderingContext2D;
-  const canvas2dOut = canvasOut.getContext("2d") as CanvasRenderingContext2D;
+export const drawSobel = (imageData: ImageData): ImageData => {
+  const w = imageData.width;
+  const h = imageData.height;
+  const rgbaView = new RgbaView(imageData);
 
-  const selection = canvas2dIn.getImageData(0, 0, w, h);
-  const rgbaView = new RgbaView(selection);
+  const outputData = new Uint8ClampedArray(w * h * 4);
 
   // Convolute all pixels not on boundary.
   for (let x = 1; x < w - 1; x++) {
@@ -52,16 +47,13 @@ export const drawSobel = (
       const cx = convolute(xMask, matrix);
       const cy = convolute(yMask, matrix);
 
-      const cxy = new Rgba(
-        getMagnitude(cx.r, cy.r),
-        getMagnitude(cx.g, cy.g),
-        getMagnitude(cx.b, cy.b),
-        // Retain original A.
-        rgbaView.get(x, y).a
-      );
-
-      canvas2dOut.fillStyle = cxy.toColor();
-      canvas2dOut.fillRect(x, y, 1, 1);
+      const datai = 4 * (y * w + x);
+      outputData[datai] = getMagnitude(cx.r, cy.r);
+      outputData[datai + 1] = getMagnitude(cx.g, cy.g);
+      outputData[datai + 2] = getMagnitude(cx.b, cy.b);
+      outputData[datai + 3] = rgbaView.get(x, y).a;
+      // Retain original A.
     }
   }
+  return new ImageData(outputData, w, h);
 };

@@ -2,6 +2,7 @@ import { saveAs } from "file-saver";
 import JSZip from "jszip";
 import React from "react";
 
+import Canvas from "../../components/Canvas";
 import { EdgeDetectionMethod, draw } from "features/qed/methods";
 import { read } from "util/fileReader";
 import { loadImg } from "util/img";
@@ -56,76 +57,30 @@ const Interval = ({
 };
 
 const QedPage = () => {
-  const canvasInRef = React.useRef<HTMLCanvasElement | null>(null);
-  const canvasOutRef = React.useRef<HTMLCanvasElement | null>(null);
+  const [files, setFiles] = React.useState<FileList>();
+  const [img, setImg] = React.useState<HTMLImageElement>();
   const [interval, setInterval] = React.useState<[number, number]>([0, 0]);
-  const [isDragging, setIsDragging] = React.useState(false);
   const [method, setMethod] = React.useState<EdgeDetectionMethod>(
     EdgeDetectionMethod.Simple
   );
-  const [processed, setProcessed] = React.useState<Blob>();
+  const [processedBlob, setProcessedBlob] = React.useState<Blob>();
+  const [processedImg, setProcessedImg] = React.useState<ImageData>();
   const [statusMessage, setStatusMessage] = React.useState<string>();
 
-  const processFiles = React.useCallback(
-    async (files: FileList) => {
-      const zipped = new JSZip();
-      setStatusMessage("Loading...");
-      setProcessed(undefined);
-      for (const file of files) {
-        const data = await read(file, "dataUrl");
-        const img = await loadImg(data);
-
-        const canvasIn = canvasInRef.current;
-        if (canvasIn) {
-          canvasIn.height = img.naturalHeight;
-          canvasIn.width = img.naturalWidth;
-        }
-
-        const canvasOut = canvasOutRef.current;
-        if (canvasOut) {
-          canvasOut.height = img.naturalHeight;
-          canvasOut.width = img.naturalWidth;
-        }
-
-        const canvas2dIn = canvasIn?.getContext("2d");
-        const canvas2dOut = canvasOut?.getContext("2d");
-
-        if (canvasIn && canvas2dIn && canvasOut && canvas2dOut) {
-          canvas2dIn.clearRect(0, 0, canvasIn.width, canvasIn.height);
-          canvas2dIn.drawImage(img, 0, 0);
-          draw({ canvasIn, canvasOut, interval, method });
-          const dataUri = canvasOut.toDataURL("image/png");
-          zipped.file(
-            `QED_${file.name}`,
-            // Remove leading "data:image/png;base64," string, if it exists.
-            dataUri.replace(/^(data:image\/png;base64,)/, ""),
-            {
-              base64: true,
-            }
-          );
-        }
-      }
-      const blob = await zipped.generateAsync({ type: "blob" });
-      setProcessed(blob);
-      setStatusMessage("Loaded!");
-    },
-    [interval, method, setStatusMessage, setProcessed]
-  );
-
-  const handleChange: React.ChangeEventHandler<HTMLInputElement> =
+  const handleFileChange: React.ChangeEventHandler<HTMLInputElement> =
     React.useCallback(
-      async (e) => {
-        const files = e.currentTarget.files;
-        if (files) {
-          await processFiles(files);
+      (e) => {
+        const f = e.currentTarget.files;
+        if (f) {
+          setFiles(f);
         }
       },
-      [processFiles]
+      [setFiles]
     );
 
   const handleDrop: React.DragEventHandler<HTMLCanvasElement> =
     React.useCallback(
-      async (e) => {
+      (e) => {
         const data = e.dataTransfer;
         const url = data.getData("url");
         if (url !== "") {
@@ -133,11 +88,58 @@ const QedPage = () => {
             "Due to security issues, this script cannot accept cross-domain images. :("
           );
         }
-        const files = data.files;
-        await processFiles(files);
+        setFiles(data.files);
       },
-      [processFiles, setStatusMessage]
+      [setFiles, setStatusMessage]
     );
+
+  const processImages = React.useCallback(async () => {
+    setImg(undefined);
+    setStatusMessage("Loading...");
+    setProcessedBlob(undefined);
+
+    if (files) {
+      const zipped = new JSZip();
+      for (const file of files) {
+        const data = await read(file, "dataUrl");
+        const i = await loadImg(data);
+        setImg(i);
+
+        const canvas = document.createElement("canvas");
+        canvas.width = i.width;
+        canvas.height = i.height;
+        const context2d = canvas.getContext("2d");
+        if (context2d) {
+          context2d.drawImage(i, 0, 0);
+          const processed = draw({
+            imageData: context2d.getImageData(
+              0,
+              0,
+              canvas.width,
+              canvas.height
+            ),
+            interval,
+            method,
+          });
+          context2d.putImageData(processed, 0, 0);
+          setProcessedImg(processed);
+        }
+        zipped.file(
+          `QED_${file.name}`,
+          // Remove leading "data:image/png;base64," string, if it exists.
+          canvas
+            .toDataURL("image/png")
+            .replace(/^(data:image\/png;base64,)/, ""),
+          {
+            base64: true,
+          }
+        );
+      }
+      const blob = await zipped.generateAsync({ type: "blob" });
+      setProcessedBlob(blob);
+      setStatusMessage("Loaded!");
+    }
+  }, [files, interval, method, setStatusMessage, setProcessedBlob]);
 
   React.useEffect(() => {
     if (method === EdgeDetectionMethod.ColorDifference) {
@@ -148,41 +150,9 @@ const QedPage = () => {
     }
   }, [method]);
 
-  // Draw the drag-and-drop text after the input canvas has rendered
   React.useLayoutEffect(() => {
-    const canvasIn = canvasInRef.current;
-    const canvas2dIn = canvasIn?.getContext("2d");
-
-    if (canvasIn && canvas2dIn) {
-      canvas2dIn.font = "30px serif";
-      canvas2dIn.textAlign = "center";
-      canvas2dIn.textBaseline = "middle";
-      canvas2dIn.clearRect(0, 0, canvasIn.width, canvasIn.height);
-      canvas2dIn.fillText(
-        "Drag-and-drop!",
-        canvasIn.width / 2,
-        canvasIn.height / 2
-      );
-    }
-  }, []);
-
-  // Draw the description text after the output canvas has rendered
-  React.useLayoutEffect(() => {
-    const canvasOut = canvasOutRef.current;
-    const canvas2dOut = canvasOut?.getContext("2d");
-
-    if (canvasOut && canvas2dOut) {
-      canvas2dOut.font = "30px serif";
-      canvas2dOut.textAlign = "center"; // Horizontal centering
-      canvas2dOut.textBaseline = "middle"; // Vertical centering
-      canvas2dOut.clearRect(0, 0, canvasOut.width, canvasOut.height);
-      canvas2dOut.fillText(
-        "Edges displayed here!",
-        canvasOut.width / 2,
-        canvasOut.height / 2
-      );
-    }
-  }, []);
+    processImages();
+  }, [processImages]);
 
   return (
     <div>
@@ -234,41 +204,19 @@ const QedPage = () => {
       <input
         accept="image/*"
         multiple={true}
-        onChange={handleChange}
+        onChange={handleFileChange}
         type="file"
       />
       {/* Input canvas */}
-      <canvas
-        onDragEnter={() => setIsDragging(true)}
-        onDragLeave={() => setIsDragging(false)}
-        // Prevent browser redirect.
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={(e) => {
-          // Prevent browser redirect.
-          e.preventDefault();
-          setIsDragging(false);
-          handleDrop(e);
-        }}
-        ref={canvasInRef}
-        style={{
-          backgroundColor: isDragging ? "#EEE" : "#FFF",
-          border: "1px solid black",
-          display: "block",
-        }}
-      />
+      <Canvas handleDrop={handleDrop} img={img} placeholder="Drag-and-drop!" />
       {/* Output canvas */}
-      <canvas
-        ref={canvasOutRef}
-        style={{
-          backgroundColor: "#FFF",
-          border: "1px solid #000000",
-          display: "block",
-        }}
-      />
+      <Canvas img={processedImg} placeholder="Edges displayed here!" />
       {statusMessage ? <p>{statusMessage}</p> : null}
       <button
-        disabled={processed === undefined}
-        onClick={() => (processed ? saveAs(processed, "QED.zip") : undefined)}
+        disabled={processedBlob === undefined}
+        onClick={() =>
+          processedBlob ? saveAs(processedBlob, "QED.zip") : undefined
+        }
         type="button"
       >
         Download

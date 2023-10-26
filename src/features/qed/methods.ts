@@ -11,32 +11,23 @@ export enum EdgeDetectionMethod {
 }
 
 export const draw = ({
-  canvasIn,
-  canvasOut,
-  method,
+  imageData,
   interval,
+  method,
 }: {
-  canvasIn: HTMLCanvasElement;
-  canvasOut: HTMLCanvasElement;
-  method: EdgeDetectionMethod;
+  imageData: ImageData;
   interval: [number, number];
+  method: EdgeDetectionMethod;
 }) => {
-  const canvas2dOut = canvasOut.getContext("2d") as CanvasRenderingContext2D;
-  canvas2dOut.clearRect(0, 0, canvasOut.width, canvasOut.height);
-
   switch (method) {
     case EdgeDetectionMethod.ColorDifference:
-      drawDifference({ canvasIn, canvasOut, interval });
-      break;
+      return drawDifference({ imageData, interval });
     case EdgeDetectionMethod.NormalDifference:
-      drawDotProduct({ canvasIn, canvasOut, interval });
-      break;
+      return drawDotProduct({ imageData, interval });
     case EdgeDetectionMethod.Simple:
-      drawSimple(canvasIn, canvasOut);
-      break;
+      return drawSimple(imageData);
     case EdgeDetectionMethod.Sobel:
-      drawSobel(canvasIn, canvasOut);
-      break;
+      return drawSobel(imageData);
     default:
       throw Error(`Unexpected value for method: ${method}`);
   }

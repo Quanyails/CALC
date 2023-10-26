@@ -2,17 +2,12 @@
 
 import { RgbaView } from "../../image_processing/rgbaView";
 
-export const drawSimple = (
-  canvasIn: HTMLCanvasElement,
-  canvasOut: HTMLCanvasElement
-) => {
-  const w = canvasIn.width;
-  const h = canvasIn.height;
-  const canvas2dIn = canvasIn.getContext("2d") as CanvasRenderingContext2D;
-  const canvas2dOut = canvasOut.getContext("2d") as CanvasRenderingContext2D;
+export const drawSimple = (imageData: ImageData): ImageData => {
+  const w = imageData.width;
+  const h = imageData.height;
+  const rgbaView = new RgbaView(imageData);
 
-  const selection = canvas2dIn.getImageData(0, 0, w, h);
-  const rgbaView = new RgbaView(selection);
+  const outputData = new Uint8ClampedArray(w * h * 4);
 
   // Iterate through all but edge pixels.
   for (let x = 0; x < w - 1; x++) {
@@ -20,6 +15,8 @@ export const drawSimple = (
       const currentPixel = rgbaView.get(x, y);
       const downPixel = rgbaView.get(x + 1, y);
       const rightPixel = rgbaView.get(x, y + 1);
+
+      const datai = 4 * (y * w + x);
 
       // Pixels match, no edge.
       if (
@@ -33,14 +30,21 @@ export const drawSimple = (
         currentPixel.b === rightPixel.b &&
         currentPixel.a === rightPixel.a
       ) {
-        canvas2dOut.fillStyle = "#ffffff"; // white
-        canvas2dOut.fillRect(x, y, 1, 1);
+        // white
+        outputData[datai] = 255;
+        outputData[datai + 1] = 255;
+        outputData[datai + 2] = 255;
+        outputData[datai + 3] = 255;
       }
       // Pixels don't match, edge.
       else {
-        canvas2dOut.fillStyle = "#000000"; // black
-        canvas2dOut.fillRect(x, y, 1, 1);
+        // black
+        outputData[datai] = 0;
+        outputData[datai + 1] = 0;
+        outputData[datai + 2] = 0;
+        outputData[datai + 3] = 255;
       }
     }
   }
+  return new ImageData(outputData, w, h);
 };

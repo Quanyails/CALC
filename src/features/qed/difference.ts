@@ -1,29 +1,25 @@
 import { processDifference } from "../../image_processing/difference";
-import { Rgba } from "../../image_processing/rgba";
 import { RgbaView } from "../../image_processing/rgbaView";
 import { LinearScale } from "../../util/linearScale";
 
 export const drawDifference = ({
-  canvasIn,
-  canvasOut,
+  imageData,
   interval,
 }: {
-  canvasIn: HTMLCanvasElement;
-  canvasOut: HTMLCanvasElement;
+  imageData: ImageData;
   interval: [number, number];
-}) => {
-  const w = canvasIn.width;
-  const h = canvasIn.height;
-  const canvas2dIn = canvasIn.getContext("2d") as CanvasRenderingContext2D;
-  const canvas2dOut = canvasOut.getContext("2d") as CanvasRenderingContext2D;
+}): ImageData => {
+  const w = imageData.width;
+  const h = imageData.height;
+  const rgbaView = new RgbaView(imageData);
 
   const contrastScale = new LinearScale({
     clamp: true,
     domain: interval,
     range: [0, 255],
   });
-  const selection = canvas2dIn.getImageData(0, 0, w, h);
-  const rgbaView = new RgbaView(selection);
+
+  const outputData = new Uint8ClampedArray(w * h * 4);
 
   // Iterate through all but edge pixels.
   for (let x = 0; x < w - 1; x++) {
@@ -37,16 +33,13 @@ export const drawDifference = ({
         downPixel,
         rightPixel,
       ]);
-      const rescaled = new Rgba(
-        Math.round(contrastScale.get(processed.r)),
-        Math.round(contrastScale.get(processed.g)),
-        Math.round(contrastScale.get(processed.b)),
-        processed.a
-      );
 
-      // Set RGB values to the magnitude to get a shade of gray.
-      canvas2dOut.fillStyle = rescaled.toColor();
-      canvas2dOut.fillRect(x, y, 1, 1);
+      const datai = 4 * (y * w + x);
+      outputData[datai] = Math.round(contrastScale.get(processed.r));
+      outputData[datai + 1] = Math.round(contrastScale.get(processed.g));
+      outputData[datai + 2] = Math.round(contrastScale.get(processed.b));
+      outputData[datai + 3] = processed.a;
     }
   }
+  return new ImageData(outputData, w, h);
 };

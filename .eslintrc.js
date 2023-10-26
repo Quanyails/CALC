@@ -268,7 +268,6 @@ module.exports = {
         "newlines-between": "always",
       },
     ],
-    "linebreak-style": ["error", "unix"],
     "max-lines": "off",
     "new-parens": "error",
     // Use @typescript-eslint/no-array-constructor instead of no-array-constructor
