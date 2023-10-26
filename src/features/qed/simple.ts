@@ -1,6 +1,6 @@
 // Simple edge detection: check neighboring pixels for different values.
-import type { Pixel } from "features/qed/matrix";
-import { getPixelMatrix } from "features/qed/matrix";
+
+import { RgbaView } from "../../image_processing/rgbaView";
 
 export const drawSimple = (
   canvasIn: HTMLCanvasElement,
@@ -12,14 +12,14 @@ export const drawSimple = (
   const canvas2dOut = canvasOut.getContext("2d") as CanvasRenderingContext2D;
 
   const selection = canvas2dIn.getImageData(0, 0, w, h);
-  const matrix = getPixelMatrix(selection);
+  const rgbaView = new RgbaView(selection);
 
   // Iterate through all but edge pixels.
   for (let x = 0; x < w - 1; x++) {
     for (let y = 0; y < h - 1; y++) {
-      const currentPixel = matrix.get(x, y) as Pixel;
-      const downPixel = matrix.get(x + 1, y) as Pixel;
-      const rightPixel = matrix.get(x, y + 1) as Pixel;
+      const currentPixel = rgbaView.get(x, y);
+      const downPixel = rgbaView.get(x + 1, y);
+      const rightPixel = rgbaView.get(x, y + 1);
 
       // Pixels match, no edge.
       if (
